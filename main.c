@@ -1,8 +1,8 @@
 #include "raylib.h"
 #include <stdio.h>
 
-#define ALTURA 800
-#define LARGURA 800
+#define ALTURA 600
+#define LARGURA 600
 #define LADO_PERSONAGEM 20
 #define LADO_COMIDA 20
 #define MAX_COMIDA 10
