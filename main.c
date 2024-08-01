@@ -8,27 +8,32 @@
 #define MAX_COMIDA 10
 
 //ESTRUTURA COMIDA
-typedef struct strct_comida{ // declaraÁ„o de tipo: È global
+typedef struct strct_comida{ // declara√ß√£o de tipo: √© global
  int x, y;
  int visivel;
  }Comida;
 
 //PROTOTIPOS DAS FUNCOES
 void movePersonagem(int *x, int *y, int alt, int larg, int *dx, int *dy);
+
 int principal(int x, int y);
+
 int inimigo(int x, int y, int dx, int dy);
+
 int comida(int x, int y, int visivel);
+
 void iniComidas(Comida *com);
+
 int comeu(struct strct_comida com[], int pos, int x, int y, int *cont);
 
 //MAIN
 int main(void){
 
 //VARIAVEIS DO PERSONAGEM
- int x = LARGURA/2 - 20;
- int y = LARGURA/2 - 20;
- int dx = 1;
- int dy = 0;
+ int x = LARGURA/2 - 20; //para iniciar no meio da tela
+ int y = LARGURA/2 - 20; //para iniciar no meio da tela
+ int dx = 0; //dire√ß√£o inicial   -1 esquerda 0parado 1direita
+ int dy = -1; //dire√ß√£o inicial    -1sobe 0parado 1desce
 
 //VARIAVEIS DA COMIDA
  int comX;
@@ -42,12 +47,12 @@ int main(void){
  //--------------------------------------------------------------------------------------
  //INICIALIZACOES
  srand(time(NULL));
- InitWindow(LARGURA, ALTURA, "SnakeGame");//Inicializa janela, com certo tamanho e tÌtulo
- SetTargetFPS(10);// Ajusta a execuÁ„o do jogo para 60 frames por segundo
+ InitWindow(LARGURA, ALTURA, "SnakeGame");//Inicializa janela, com certo tamanho e t√≠tulo
+ SetTargetFPS(30);// Ajusta a execu√ß√£o do jogo para 60 frames por segundo
  iniComidas(com);// Inicializa as Comidas
 
 
-    //LaÁo principal do jogo
+    //La√ßo principal do jogo
     while (!WindowShouldClose())
     {
     //Cuida da movimentacao da Cobra
@@ -64,7 +69,7 @@ int main(void){
     }
 
     //----------------------------------------------------------------------------------
-    // Atualiza a representaÁ„o visual a partir do estado do jogo
+    // Atualiza a representa√ß√£o visual a partir do estado do jogo
     BeginDrawing();
           for (int i = 0; i < ALTURA; i += 20) {
                 for (int a = 0; a < LARGURA; a += 20) {
@@ -72,7 +77,7 @@ int main(void){
                 }
             }
           ClearBackground(LIGHTGRAY);//Limpa a tela e define cor de fundo
-          principal(x, y);//Desenha um Personagem, com posiÁ„o, tamanho e cor
+          principal(x, y);//Desenha um Personagem, com posi√ß√£o, tamanho e cor
           for(int i = 0 ;  i < MAX_COMIDA ; i++){
             comida(com[i].x, com[i].y, com[i].visivel);//Desenha as comidas
           }
@@ -98,9 +103,22 @@ int comeu(struct strct_comida com[], int pos, int x, int y, int *quantCom){
 }
 //Inicia todas as comidas, e suas posicoes
 void iniComidas(struct strct_comida com[]){
+    int auxX, auxY, flag;
     for(int i = 0 ; i < MAX_COMIDA ; i++){
-        com[i].x = rand()%LARGURA/20 * LADO_COMIDA;
-        com[i].y = rand()%ALTURA/20 * LADO_COMIDA;
+        flag = 1;
+        while(flag){ //para impedir que duas comidas tenham a mesma posi√ß√£o
+            flag =0;
+            auxX = rand()%LARGURA/20 * LADO_COMIDA;
+            auxY = rand()%ALTURA/20 * LADO_COMIDA;
+            for(int j=0; j<i;j++){
+                if(auxX==com[j].x && auxY == com[j].y){
+                    flag=1;
+                    break;
+                }
+            }
+        }
+        com[i].x = auxX;
+        com[i].y = auxY;
         com[i].visivel = 1;
     }
 }
