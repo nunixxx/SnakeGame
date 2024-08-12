@@ -1,30 +1,56 @@
 #include "raylib.h"
 #include <stdio.h>
+#include <string.h>
 
 #define ALTURA 600
 #define LARGURA 600
 #define LADO_PERSONAGEM 20
 #define LADO_COMIDA 20
 #define MAX_COMIDA 10
+#define MAX_MATRIZ 40
+#define MAX_TUNEL 9
 
-//ESTRUTURA COMIDA
+//ESTRUTURAS
+//Button
+typedef struct strct_button{
+    Rectangle rect; // Tamanho e posicao do botao
+    Color cor; // Cor do botao
+    int acao; // sua acao dentro do main
+    char texto[30]; // Texto dentro do botao
+} Button;
+
+//COMIDA
 typedef struct strct_comida{ // declaração de tipo: é global
- int x, y;
- int visivel;
+ int x, y; // posicao
+ int visivel; // estado
  }Comida;
 
+ //TUNEL
+ typedef struct strct_tunel{
+    int dir1, dir2; //direcoes que cada tunel tem
+ } Tunel;
+
 //PROTOTIPOS DAS FUNCOES
-void movePersonagem(int *x, int *y, int alt, int larg, int *dx, int *dy);
 
-int principal(int x, int y);
+void updateFrame(); //atualiza algumas funcoes da tela para manter mais limpa
 
-int inimigo(int x, int y, int dx, int dy);
+void iniButton(Button *button, Rectangle rect, Color cor, int acao, char *texto); //Inicializa os botoes
 
-int comida(int x, int y, int visivel);
+int checkButton(Button button); //Retorna se o mouse esta em cima do botao
 
-void iniComidas(Comida *com);
+void buttonsState(Button button, int *func); //Cuida da tela Menu e as acoes ao clicar em cada
 
-int comeu(struct strct_comida com[], int pos, int x, int y, int *cont);
+void movePersonagem(int *x, int *y, int alt, int larg, int *dx, int *dy); //gerencia a movimentacao da cobra
+
+int principal(int x, int y); // desenha a cobra
+
+int comida(int x, int y, int visivel); //desenha as comidas
+
+void iniComidas(Comida *com); // inicializa as comidas
+
+int comeu(struct strct_comida com[], int pos, int x, int y, int *cont); //Retorna se a comida foi pega
+
+//int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX]); //le os dados do mapa
 
 //MAIN
 int main(void){
@@ -32,8 +58,8 @@ int main(void){
 //VARIAVEIS DO PERSONAGEM
  int x = LARGURA/2 - 20; //para iniciar no meio da tela
  int y = LARGURA/2 - 20; //para iniciar no meio da tela
- int dx = 0; //direção inicial   -1 esquerda 0parado 1direita
- int dy = -1; //direção inicial    -1sobe 0parado 1desce
+ int dx = 0; //direção inicial   -1 esquerda 0 parado 1 direita
+ int dy = -1; //direção inicial    -1 sobe 0 parado 1 desce
 
 //VARIAVEIS DA COMIDA
  int comX;
@@ -43,56 +69,126 @@ int main(void){
 
 //CONTADOR NA TELA
  char text[20] = {"0"};
+ int func = 0;
+ //BUTTONS
+ Button buttons[4];
+ /*
+ [0] - Novo Jogo
+ [1] - Carregar fases
+ [2] - HighScores
+ [3] - Sair
+ */
 
  //--------------------------------------------------------------------------------------
  //INICIALIZACOES
  srand(time(NULL));
  InitWindow(LARGURA, ALTURA, "SnakeGame");//Inicializa janela, com certo tamanho e título
- SetTargetFPS(30);// Ajusta a execução do jogo para 60 frames por segundo
+ SetTargetFPS(10);// Ajusta a execução do jogo para 60 frames por segundo
  iniComidas(com);// Inicializa as Comidas
 
+ //buttons
+
+ iniButton(&buttons[0], (Rectangle){LARGURA/2 - 125, ALTURA/2 - 200, 250, 50}, DARKBLUE, 1, "Novo Jogo");
+ iniButton(&buttons[1], (Rectangle){LARGURA/2 - 125, ALTURA/2 - 100, 250, 50}, DARKBLUE, 2, "Fases");
+ iniButton(&buttons[2], (Rectangle){LARGURA/2 - 125, ALTURA/2, 250, 50}, DARKBLUE, 3, "HighScores");
+ iniButton(&buttons[3], (Rectangle){LARGURA/2 - 125, ALTURA/2 + 100, 250, 50}, RED, 4, "Sair");
 
     //Laço principal do jogo
     while (!WindowShouldClose())
     {
-    //Cuida da movimentacao da Cobra
-    movePersonagem(&x, &y, ALTURA, LARGURA, &dx, &dy);
+        switch(func){
 
-    //----------------------------------------------------------------------------------
-    //Trata se o personagem passou pela comida
-    for(int i = 0 ;  i < MAX_COMIDA ; i++){
-        if(comeu(com, i, x, y, &quantCom)){
-            comida(com[i].x, com[i].y, com[i].visivel);
-            snprintf(text, 20, "%d", quantCom);
-        }
+            case 0: //Menu
+            BeginDrawing();
+                for(int i = 0 ; i < 4 ; i++) buttonsState(buttons[i], &func);
+            EndDrawing();
+            break;
 
-    }
+            case 1: //Jogo Rodando
+                //Cuida da movimentacao da Cobra
+                movePersonagem(&x, &y, ALTURA, LARGURA, &dx, &dy);
 
-    //----------------------------------------------------------------------------------
-    // Atualiza a representação visual a partir do estado do jogo
-    BeginDrawing();
-          for (int i = 0; i < ALTURA; i += 20) {
-                for (int a = 0; a < LARGURA; a += 20) {
-                    DrawRectangle(i, a, 19, 19, WHITE);
+                //----------------------------------------------------------------------------------
+                //Trata se o personagem passou pela comida
+                for(int i = 0 ;  i < MAX_COMIDA ; i++){
+                    if(comeu(com, i, x, y, &quantCom)){
+                        comida(com[i].x, com[i].y, com[i].visivel);
+                        snprintf(text, 20, "%d", quantCom);
+                    }
+
                 }
-            }
-          ClearBackground(LIGHTGRAY);//Limpa a tela e define cor de fundo
-          principal(x, y);//Desenha um Personagem, com posição, tamanho e cor
-          for(int i = 0 ;  i < MAX_COMIDA ; i++){
-            comida(com[i].x, com[i].y, com[i].visivel);//Desenha as comidas
-          }
-          DrawText(text, 600, 600, 20, BLUE);//Contador de comidas
-          if(quantCom == MAX_COMIDA){
-                DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED);
-          }
-    EndDrawing();
+
+                //----------------------------------------------------------------------------------
+                // Atualiza a representação visual a partir do estado do jogo
+                BeginDrawing();
+                      updateFrame();
+                      principal(x, y);//Desenha um Personagem, com posição, tamanho e cor
+                      for(int i = 0 ;  i < MAX_COMIDA ; i++){
+                        comida(com[i].x, com[i].y, com[i].visivel);//Desenha as comidas
+                      }
+                      DrawText(text, 600, 600, 20, BLUE);//Contador de comidas
+                      if(quantCom == MAX_COMIDA){
+                            DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED);
+                      }
+                EndDrawing();
+            break;
+
+            case 2: //Carregar fases
+
+            break;
+
+            case 3: //HighScores
+
+            break;
+
+            case 4: //Sair
+
+            break;
+
+
+        }
     }
     CloseWindow();
     return 0;
 }
 
+
 //----------------------------------------------------------------------------------
 //FUNCOES
+
+void buttonsState(Button button, int *func){
+
+    if(checkButton(button) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+        *func = button.acao; //caso precionado sua devida acao eh colocada na variavel func do main
+    }
+        ClearBackground(RAYWHITE);
+        DrawRectangleRec(button.rect, button.cor); //desenha o botao
+        DrawText(button.texto, button.rect.x + button.rect.width / 2 - MeasureText(button.texto, 20) / 2, button.rect.y + button.rect.height / 2 - 20 / 2, 20, WHITE);//desenha o texto do botao
+
+}
+
+int checkButton(Button button){
+    return CheckCollisionPointRec(GetMousePosition(), button.rect); //retorna se o mouse esta em cima do botao
+}
+
+void iniButton(Button *button, Rectangle rect, Color cor, int acao, char *texto){
+    button->rect = rect;
+    button->cor = cor;
+    button->acao = acao;
+    strncpy(button->texto, texto, sizeof(button->texto) - 1);
+}
+
+void updateFrame(){
+
+    for (int i = 0; i < ALTURA; i += 20) {
+        for (int a = 0; a < LARGURA; a += 20) {
+            DrawRectangle(i, a, 19, 19, WHITE); //desenha os quadrantes na tela
+        }
+    }
+    ClearBackground(LIGHTGRAY);// Limpa a tela e define cor de fundo
+
+}
+
 int comeu(struct strct_comida com[], int pos, int x, int y, int *quantCom){
     if(com[pos].x == x && com[pos].y == y && com[pos].visivel == 1){
         com[pos].visivel = 0;
