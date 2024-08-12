@@ -143,6 +143,13 @@ int main(void){
 
             case 4: //Sair
 
+                BeginDrawing();
+                    ClearBackground(RAYWHITE);
+                    DrawText("Fechando...", LARGURA/2 - 40, ALTURA/2, 40, RED);
+                EndDrawing();
+                WaitTime(3);
+                CloseWindow();
+
             break;
 
 
