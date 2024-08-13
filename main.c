@@ -2,16 +2,27 @@
 #include <stdio.h>
 #include <string.h>
 
-#define ALTURA 600
-#define LARGURA 600
-#define LADO_PERSONAGEM 20
-#define LADO_COMIDA 20
+#define ALTURA 800
+#define LARGURA 800
+#define LADO_PERSONAGEM 40
+#define LADO_COMIDA 40
 #define MAX_COMIDA 10
 #define MAX_MATRIZ 40
 #define MAX_TUNEL 9
+#define MAX_TAMANHO 20
 
 //ESTRUTURAS
-//Button
+typedef struct strct_pos {
+    int x, y;
+} Posicao;
+
+//COBRA
+typedef struct strct_cobra{
+    int tam;
+    Posicao pos[MAX_TAMANHO];
+} Cobra;
+
+//BUTTON
 typedef struct strct_button{
     Rectangle rect; // Tamanho e posicao do botao
     Color cor; // Cor do botao
@@ -50,14 +61,14 @@ void iniComidas(Comida *com); // inicializa as comidas
 
 int comeu(struct strct_comida com[], int pos, int x, int y, int *cont); //Retorna se a comida foi pega
 
-//int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX]); //le os dados do mapa
+int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX_MATRIZ]); //le os dados do mapa
 
 //MAIN
 int main(void){
 
 //VARIAVEIS DO PERSONAGEM
- int x = LARGURA/2 - 20; //para iniciar no meio da tela
- int y = LARGURA/2 - 20; //para iniciar no meio da tela
+ int x = LARGURA/2 - 40; //para iniciar no meio da tela
+ int y = LARGURA/2 - 40; //para iniciar no meio da tela
  int dx = 0; //direção inicial   -1 esquerda 0 parado 1 direita
  int dy = -1; //direção inicial    -1 sobe 0 parado 1 desce
 
@@ -93,6 +104,12 @@ int main(void){
  iniButton(&buttons[2], (Rectangle){LARGURA/2 - 125, ALTURA/2, 250, 50}, DARKBLUE, 3, "HighScores");
  iniButton(&buttons[3], (Rectangle){LARGURA/2 - 125, ALTURA/2 + 100, 250, 50}, RED, 4, "Sair");
 
+    Posicao pos;
+    Tunel tunel[MAX_TUNEL];
+    int quant;
+    char mat[MAX_MATRIZ][MAX_MATRIZ];
+
+leMapa("mapa1.txt", &pos, tunel, &quant, mat);
     //Laço principal do jogo
     while (!WindowShouldClose())
     {
@@ -163,6 +180,50 @@ int main(void){
 //----------------------------------------------------------------------------------
 //FUNCOES
 
+int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX_MATRIZ]){
+    FILE *arq;
+    int matX = 0, matY = 0;
+    char lido = 'a', destino[100];
+
+    sprintf(destino, "Mapas/%s", nome);
+
+    if(!(arq = fopen(destino,"r"))){ // abre para escrita modo texto
+        printf("Erro na abertura\n");
+        return 1;
+    }
+    else{
+        //LEITURA TAMANHO MAPA
+        for(int i = 0 ; i < 1; i++){
+            fscanf(arq, "%d %d\n", &pos->x, &pos->y);
+            printf("x = %d \ny = %d\n", pos->x, pos->y);
+            fscanf(arq, "%d\n", &*var);
+        }
+        printf("%d\n", *var);
+        //LEITURA POSICOES TUNEIS
+        for(int i = 0; i < *var; i++){
+            fscanf(arq, "%d %d\n", &tunel[i].dir1, &tunel[i].dir2);
+            printf("dir1 = %d \ndir2 = %d\n", tunel[i].dir1, tunel[i].dir2);
+        }
+        //LEITURA MAPA
+        while(lido != EOF){
+            lido = fgetc(arq);
+            if(lido != '\n'){
+                mat[matX][matY] = lido;
+                printf("%c", mat[matX][matY]);
+                matX++;
+            }else{
+                mat[matX][matY] = lido;
+                printf("%c", mat[matX][matY]);
+                matY++;
+                matX = 0;
+            }
+        }
+
+        fclose(arq);
+    }
+    return 0;
+}
+
 void buttonsState(Button button, int *func){
 
     if(checkButton(button) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
@@ -186,13 +247,13 @@ void iniButton(Button *button, Rectangle rect, Color cor, int acao, char *texto)
 }
 
 void updateFrame(){
+    ClearBackground(LIGHTGRAY);// Limpa a tela e define cor de fundo
 
-    for (int i = 0; i < ALTURA; i += 20) {
-        for (int a = 0; a < LARGURA; a += 20) {
-            DrawRectangle(i, a, 19, 19, WHITE); //desenha os quadrantes na tela
+    for (int i = 0; i < ALTURA; i += MAX_MATRIZ) {
+        for (int a = 0; a < LARGURA; a += MAX_MATRIZ) {
+            DrawRectangle(i, a, MAX_MATRIZ -1, MAX_MATRIZ - 1, WHITE); //desenha os quadrantes na tela
         }
     }
-    ClearBackground(LIGHTGRAY);// Limpa a tela e define cor de fundo
 
 }
 
@@ -211,8 +272,8 @@ void iniComidas(struct strct_comida com[]){
         flag = 1;
         while(flag){ //para impedir que duas comidas tenham a mesma posição
             flag =0;
-            auxX = rand()%LARGURA/20 * LADO_COMIDA;
-            auxY = rand()%ALTURA/20 * LADO_COMIDA;
+            auxX = rand()%LARGURA/40 * LADO_COMIDA;
+            auxY = rand()%ALTURA/40 * LADO_COMIDA;
             for(int j=0; j<i;j++){
                 if(auxX==com[j].x && auxY == com[j].y){
                     flag=1;
@@ -249,8 +310,8 @@ void movePersonagem(int *x, int *y, int alt, int larg, int *dx, int *dy){
     }
 
     //calcula nova posicao
-    tempX = *x +(20 * *dx);
-    tempY = *y +(20 * *dy);
+    tempX = *x +(40 * *dx);
+    tempY = *y +(40 * *dy);
 
     //Checa se eh possivel se mover nessa posicao
     if (!(tempX >= larg || tempX < 0 || tempY >= alt || tempY < 0)) {
