@@ -72,6 +72,11 @@ int main(void){
  int dx = 0; //direção inicial   -1 esquerda 0 parado 1 direita
  int dy = -1; //direção inicial    -1 sobe 0 parado 1 desce
 
+ Cobra corpo;
+
+ corpo.pos[0].x = x;
+ corpo.pos[0].y = y;
+
 //VARIAVEIS DA COMIDA
  int comX;
  int comY;
@@ -123,6 +128,19 @@ leMapa("mapa1.txt", &pos, tunel, &quant, mat);
 
             case 1: //Jogo Rodando
                 //Cuida da movimentacao da Cobra
+                int aux_x[MAX_COMIDA];
+                int aux_y[MAX_COMIDA];
+                for(int i= 0 ; i <quantCom; i++){
+                    aux_x[i] = corpo.pos[i].x;
+                    aux_y[i] = corpo.pos[i].y;
+                }
+                for(int i= 1 ; i <quantCom; i++){
+                    corpo.pos[i].x= aux_x[i-1];
+                    corpo.pos[i].y = aux_y[i-1];
+                }
+                corpo.pos[0].x = x;
+                corpo.pos[0].y = y;
+
                 movePersonagem(&x, &y, ALTURA, LARGURA, &dx, &dy);
 
                 //----------------------------------------------------------------------------------
@@ -134,18 +152,29 @@ leMapa("mapa1.txt", &pos, tunel, &quant, mat);
                     }
 
                 }
+                //Testa colisão com o corpo
+                for(int i = 0 ;  i < MAX_COMIDA ; i++){
+                    if(x == corpo.pos[i].x && y == corpo.pos[i].y ){
+                        printf("COLISAO");
+                    }
+
+                }
 
                 //----------------------------------------------------------------------------------
                 // Atualiza a representação visual a partir do estado do jogo
                 BeginDrawing();
                       updateFrame();
                       principal(x, y);//Desenha um Personagem, com posição, tamanho e cor
+                      for(int i= 0 ; i <quantCom; i++){
+                         principal(corpo.pos[i].x, corpo.pos[i].y);
+                      }
                       for(int i = 0 ;  i < MAX_COMIDA ; i++){
                         comida(com[i].x, com[i].y, com[i].visivel);//Desenha as comidas
                       }
                       DrawText(text, 600, 600, 20, BLUE);//Contador de comidas
                       if(quantCom == MAX_COMIDA){
                             DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED);
+
                       }
                 EndDrawing();
             break;
