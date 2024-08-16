@@ -4,26 +4,29 @@
 
 #define ALTURA 800
 #define LARGURA 800
-#define MAX_COMIDA 10
+#define MAX_COMIDA 20
 #define MAX_MATRIZ 40
 #define MAX_TUNEL 9
 #define MAX_COBRA 20
 #define MAX_INPUT_CHARS 10
 #define MAX_INPUT_NUMS 3
 
+//ESTRUTURAS
+
+//PROPORCAO DO MAPA
 typedef struct strct_prop {
     int x, y;
 } Proporcao;
 
-//ESTRUTURAS
+//POSICOES DENTRO DA MATRIZ
 typedef struct strct_pos {
     int x, y;
 } Posicao;
 
 //COBRA
 typedef struct strct_cobra{
-    int tam;
-    Posicao pos[MAX_COBRA];
+    int tam; //Tamanho do corpo
+    Posicao pos[MAX_COBRA]; // corpo
 } Cobra;
 
 //BUTTON
@@ -42,8 +45,8 @@ typedef struct strct_comida{ // declaração de tipo: é global
 
  //TUNEL
  typedef struct strct_tunel{
-    bool iniFlag;
-    Posicao pos[2];
+    bool iniFlag; //Se ja foi iniciado o tunel[x]
+    Posicao pos[2]; //Posicoes dos tuneis com valor [x]
     int dir[2]; //direcoes que cada tunel tem
  } Tunel;
 
@@ -69,11 +72,13 @@ int comeu(struct strct_comida com[], int pos, Posicao posi, int *cont, int lado)
 
 int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *quant, char mat[][MAX_MATRIZ], Proporcao *prop); //le os dados do mapa
 
-void centraliza(const char *texto, int posY, int fontSize, Color cor);
+void centraliza(const char *texto, int posY, int fontSize, Color cor); //centraliza textos na tela
 
-void menuPause(bool *pauseFlag, Button pauseButtons[], int *func);
+void menuPause(bool *pauseFlag, Button pauseButtons[], int *func); //Carrega e gerencia o menu de pause
 
-void entrouTunel(int quant, Tunel tunel[], Posicao *pos, char mat[][MAX_MATRIZ], int lado, int *dx, int *dy);
+void entrouTunel(int quant, Tunel tunel[], Posicao *pos, char mat[][MAX_MATRIZ], int lado, int *dx, int *dy); //Gerencia a entrada no tunel
+
+void formaNome(char mapaNome[], char mapaNum[]); //Concatena strings e forma o nome do mapa
 
 //MAIN
 int main(){
@@ -86,45 +91,46 @@ int main(){
 
 
 //VARIAVEIS DO PERSONAGEM
- Cobra corpo;
- Posicao pos;
+ Cobra corpo; //corpo da cobra
+ Posicao pos; //posicao da cabeca da cobra
  int dx = 0; //direção inicial   -1 esquerda 0 parado 1 direita
  int dy = 0; //direção inicial    -1 sobe 0 parado 1 desce
- int lado;
+ int lado; //tamanho de 1 bloco
 
 //VARIAVEIS DA COMIDA
- int comX;
- int comY;
- Comida com[MAX_COMIDA];
- int quantCom = 0;
- Texture2D comidaImg = LoadTexture("images/maca40.png");
+ int comX; //posicao X da comida visivel
+ int comY; //posicao Y da comida visivel
+ Comida com[MAX_COMIDA]; //todas as comidas do mapa
+ int quantCom = 0; //quantidade ja comida
+ Texture2D comidaImg = LoadTexture("images/maca40.png"); //imagem da comida
 
 //CONTADOR NA TELA
- char text[20] = {"0"};
- int func = 0;
+ char text[20] = {"0"}; //Contador de comidas/pontuacao
+ int func = 0; //funcao que sera exibida na tela
  bool carregado; //flag para saber se o mapa foi carregado
 
  //BUTTONS
- Button menuButtons[4];
- Button mapaInput;
- Button selectMapa;
- Button pauseButtons[2];
+ Button menuButtons[4]; //botoes menu principal
+ Button mapaInput; //escrita do mapa
+ Button selectMapa; //envio do mapa
+ Button pauseButtons[2]; //botes menu pause
 
  //MENU PAUSE
- bool pauseFlag;
+ bool pauseFlag; //jogo pausado?
 
 //MAPA CARREGADO
- Tunel tunel[MAX_TUNEL] = {0};
- int quant;
- char mat[MAX_MATRIZ][MAX_MATRIZ];
- Proporcao prop;
+ Tunel tunel[MAX_TUNEL] = {0}; //tuneis do mapa
+ int quant; // quantia de tuneis
+ char mat[MAX_MATRIZ][MAX_MATRIZ]; //matriz do mapa
+ Proporcao prop; // proporcoes do mapa
 
 //MAPA INPUT
- char mapaNome[MAX_INPUT_CHARS + 1] = "\0";      // NOTE: One extra space required for null terminator char '\0'
- char mapaNum[MAX_INPUT_NUMS + 1] = "\0";
- int contaLetras = 0;
- bool mouseNoTexto = false;
- int framesCounter;
+ char mapaNome[MAX_INPUT_CHARS + 1] = "\0"; //Nome do mapa carregado
+ char mapaNum[MAX_INPUT_NUMS + 1] = "\0"; //Numero do mapa carregado
+ int contaLetras = 0; //numero de char digitados
+ bool mouseNoTexto = false; //flag para posicao do mouse
+ int framesCounter; //estilizacao do input
+
  /*
  menuButtons
  [0] - Novo Jogo
@@ -158,7 +164,7 @@ int main(){
     //Laço principal do jogo
     while (!WindowShouldClose() && !IsKeyPressed(KEY_ESCAPE))
     {
-        switch(func){
+        switch(func){// de acordo com a funcao selecionada abre uma tela
 
             case 0: //Menu
                 quantCom = 0;
@@ -175,18 +181,20 @@ int main(){
             case 1: //Jogo Rodando
                 //Jogo Pausado
                 menuPause(&pauseFlag, pauseButtons, &func);
-                if(!pauseFlag){
+                if(!pauseFlag)
+                {
                 //CarregaMapa
-                    if(!carregado){
-                        if(strlen(mapaNome) == 0){
+                    if(!carregado)//caso mapa nao estaja carregado
+                    {
+                        if(strlen(mapaNome) == 0){ //carrega mapa padrao
                             strcpy(mapaNome, "Mapa1.txt");
+                            mapaNum[0] = '1';
                         }
-                        leMapa(mapaNome, &pos, tunel, &quant, mat, &prop);
-                        printf("\n%d ", quant);
-                        lado = LARGURA/prop.x;
+                        leMapa(mapaNome, &pos, tunel, &quant, mat, &prop); //carrega o mapa selecionado
+                        lado = LARGURA/prop.x; //quanto vale cada quadrante
                         corpo.pos[0].x = pos.x;
                         corpo.pos[0].y = pos.y;
-                        iniComidas(com, lado, mat);// Inicializa as Comidas
+                        iniComidas(com, lado, mat); // Inicializa as Comidas
                         carregado = true;
                     }
 
@@ -213,11 +221,13 @@ int main(){
 
                     }
                 }
+
+                //Trata se a cobra entrou no tunel
                 entrouTunel(quant, tunel, &pos, mat, lado, &dx, &dy);
 
                 //----------------------------------------------------------------------------------
 
-                //Trata se o personagem passou pela comida
+                //Trata se a cobra passou pela comida
                 if(comeu(com, quantCom, pos, &quantCom, lado)) snprintf(text, 20, "%d", quantCom);
 
 
@@ -226,44 +236,45 @@ int main(){
                 // Atualiza a representação visual a partir do estado do jogo
                 BeginDrawing();
 
-                      updateFrame(mat, prop, tunel, quant);
+                      updateFrame(mat, prop, tunel, quant); //desenha o mapa
+
+                      principal(pos, lado);//Desenha a cabeca da cobra
 
                       for(int i= 0 ; i <quantCom; i++){
-                         principal(corpo.pos[i], lado);
+                         principal(corpo.pos[i], lado); //desenha corpo da cobra
 
                       }
 
-                      principal(pos, lado);//Desenha um Personagem, com posição, tamanho e cor
                       for(int i = 0 ;  i < MAX_COMIDA ; i++){
-                        comida(com[i].x, com[i].y, com[i].visivel, comidaImg);//Desenha as comidas
+                        comida(com[i].x, com[i].y, com[i].visivel, comidaImg);//Desenha as comidas visiveis
                       }
-                      DrawText(text, 600, 600, 20, BLUE);//Contador de comidas
+                      DrawText(text, 600, 600, 20, BLUE);//Contador de comidas/pontuacao
                       if(quantCom == MAX_COMIDA){
-                            DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED);
+                            DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED); //Mensagem fim de jogo
                       }
                 EndDrawing();
                 }
             break;
 
             case 2: //Carregar fases
-                if(checkButton(mapaInput)) mouseNoTexto = true;
-                else mouseNoTexto = false;
+                if(checkButton(mapaInput)) mouseNoTexto = true; //mouse sobre Input
+                else mouseNoTexto = false; //mouse nao esta no input
 
                 if(mouseNoTexto){
                     SetMouseCursor(MOUSE_CURSOR_IBEAM);
-                    int tecla = GetCharPressed();
+                    int tecla = GetCharPressed(); //pega a tecla precionada
 
                     while ( tecla > 0)
                     {
-                        if((tecla >=32) && (tecla <= 125) && (contaLetras < MAX_INPUT_NUMS))
+                        if((tecla >=48) && (tecla <= 57) && (contaLetras < MAX_INPUT_NUMS)) //aceita apenas as teclas numericas 0 - 9
                         {
                             mapaNum[contaLetras] = (char)tecla;
                             mapaNum[contaLetras+1] = '\0';
-                            contaLetras++;
+                            contaLetras++; //salva ela na string
                         }
-                        tecla = GetCharPressed();
+                        tecla = GetCharPressed(); //pega a proxima precionada
                     }
-                    if(IsKeyPressed(KEY_BACKSPACE))
+                    if(IsKeyPressed(KEY_BACKSPACE))//deleta ultimo caracter
                     {
                         contaLetras--;
                         if(contaLetras < 0) contaLetras = 0;
@@ -272,27 +283,27 @@ int main(){
                 }
                 else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 
-                if (mouseNoTexto) framesCounter++;
+                if (mouseNoTexto) framesCounter++; //diminui incrementa frame quando em cima do input
                 else framesCounter = 0;
-                formaNome(mapaNome, mapaNum);
+                formaNome(mapaNome, mapaNum); //formata nome do mapa
 
-                BeginDrawing();
+                BeginDrawing();//desenha a tela
                     ClearBackground(RAYWHITE);
                     centraliza("PONHA O MOUSE SOBRE A CAIXA DE TEXTO!", 300, 20,GRAY);
                     centraliza("ESCOLHA O MAPA. EX:", ALTURA/2 - 75, 20, GRAY);
                     centraliza("Mapa4.txt", ALTURA/2 - 50, 20,GRAY);
                     buttonsConfig(mapaInput, &func);
 
-                    if(mouseNoTexto) DrawRectangleLines((int)mapaInput.rect.x, (int)mapaInput.rect.y, (int)mapaInput.rect.width, (int)mapaInput.rect.height, RED);
-                    else DrawRectangleLines((int)mapaInput.rect.x, (int)mapaInput.rect.y, (int)mapaInput.rect.width, (int)mapaInput.rect.height, DARKGRAY);
+                    if(mouseNoTexto) DrawRectangleLines((int)mapaInput.rect.x, (int)mapaInput.rect.y, (int)mapaInput.rect.width, (int)mapaInput.rect.height, RED); //borda vermelha quando cursor em cima
+                    else DrawRectangleLines((int)mapaInput.rect.x, (int)mapaInput.rect.y, (int)mapaInput.rect.width, (int)mapaInput.rect.height, DARKGRAY); //volta para default
 
-                    DrawText(mapaNome, (int)mapaInput.rect.x + 5,(int)mapaInput.rect.y + 8, 30, MAROON);
+                    DrawText(mapaNome, (int)mapaInput.rect.x + 5,(int)mapaInput.rect.y + 8, 30, MAROON); // nome do mapa dentro do input
 
                     if (mouseNoTexto)
                     {
                         if (contaLetras < MAX_INPUT_CHARS)
                         {
-                            if (((framesCounter/20)%2) == 0) DrawText("_", (int)mapaInput.rect.x + 8 + MeasureText(mapaNome, 30), (int)mapaInput.rect.y + 12, 30, MAROON);
+                            if (((framesCounter/20)%2) == 0) DrawText("_", (int)mapaInput.rect.x + 8 + MeasureText(mapaNome, 30), (int)mapaInput.rect.y + 12, 30, MAROON); //fica piscando a _ enquanto escreve
                         }
                         else centraliza("Tamanho MAXIMO de caracteres. Precione BACKSPACE", ALTURA/2 +30, 15, BLACK);
                     }
@@ -313,14 +324,14 @@ int main(){
 
                 BeginDrawing();
                     ClearBackground(RAYWHITE);
-                    DrawText("Fechando...", LARGURA/2 - 40, ALTURA/2, 40, RED);
+                    centraliza("Fechando...", ALTURA/2 - 20, 40, RED);
                 EndDrawing();
                 WaitTime(3);
                 CloseWindow();
 
             break;
 
-            case 5:
+            case 5: // retomar o jogo e fechar menu pause
                 func = 1;
                 pauseFlag = false;
             break;
