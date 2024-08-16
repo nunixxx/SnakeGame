@@ -1,5 +1,10 @@
 # depslib dependency file v1.0
-1723751664 source:c:\raylib\snakegame\main.c
+1723770018 source:c:\raylib\snakegame\main.c
+	"raylib.h"
+	<stdio.h>
+	<string.h>
+
+1723510179 source:c:\users\bielk\onedrive\documentos\1semestre\teste31\snakegame\main.c
 	"raylib.h"
 	<stdio.h>
 	<string.h>

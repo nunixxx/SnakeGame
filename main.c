@@ -9,6 +9,7 @@
 #define MAX_TUNEL 9
 #define MAX_COBRA 20
 #define MAX_INPUT_CHARS 10
+#define MAX_INPUT_NUMS 3
 
 typedef struct strct_prop {
     int x, y;
@@ -41,12 +42,14 @@ typedef struct strct_comida{ // declaração de tipo: é global
 
  //TUNEL
  typedef struct strct_tunel{
-    int dir1, dir2; //direcoes que cada tunel tem
+    bool iniFlag;
+    Posicao pos[2];
+    int dir[2]; //direcoes que cada tunel tem
  } Tunel;
 
 //PROTOTIPOS DAS FUNCOES
 
-void updateFrame(char mat[][MAX_MATRIZ], Proporcao prop); //atualiza algumas funcoes da tela para manter mais limpa
+void updateFrame(char mat[][MAX_MATRIZ], Proporcao prop, Tunel tunel[], int quant); //atualiza algumas funcoes da tela para manter mais limpa
 
 void iniButton(Button *button, Rectangle rect, Color cor, int acao, char *texto); //Inicializa os botoes
 
@@ -54,26 +57,36 @@ int checkButton(Button button); //Retorna se o mouse esta em cima do botao
 
 void buttonsConfig(Button button, int *func); //Cuida da tela Menu e as acoes ao clicar em cada
 
-void movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado); //gerencia a movimentacao da cobra
+int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado); //gerencia a movimentacao da cobra
 
 int principal(Posicao pos, int lado); // desenha a cobra
 
-void comida(int x, int y, int visivel, int lado); //desenha as comidas
+void comida(int x, int y, int visivel, Texture2D comidaImg); //desenha as comidas
 
 void iniComidas(Comida *com, int lado, char mat[][MAX_MATRIZ]); // inicializa as comidas
 
 int comeu(struct strct_comida com[], int pos, Posicao posi, int *cont, int lado); //Retorna se a comida foi pega
 
-int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX_MATRIZ], Proporcao *prop); //le os dados do mapa
+int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *quant, char mat[][MAX_MATRIZ], Proporcao *prop); //le os dados do mapa
 
 void centraliza(const char *texto, int posY, int fontSize, Color cor);
 
 void menuPause(bool *pauseFlag, Button pauseButtons[], int *func);
 
+void entrouTunel(int quant, Tunel tunel[], Posicao *pos, char mat[][MAX_MATRIZ], int lado, int *dx, int *dy);
+
 //MAIN
-int main(void){
+int main(){
+
+ //--------------------------------------------------------------------------------------
+ //INICIALIZACOES
+ srand(time(NULL));
+ InitWindow(LARGURA, ALTURA, "SnakeGame");//Inicializa janela, com certo tamanho e título
+ SetTargetFPS(10);// Ajusta a execução do jogo para 60 frames por segundo
+
 
 //VARIAVEIS DO PERSONAGEM
+ Cobra corpo;
  Posicao pos;
  int dx = 0; //direção inicial   -1 esquerda 0 parado 1 direita
  int dy = 0; //direção inicial    -1 sobe 0 parado 1 desce
@@ -84,6 +97,7 @@ int main(void){
  int comY;
  Comida com[MAX_COMIDA];
  int quantCom = 0;
+ Texture2D comidaImg = LoadTexture("images/maca40.png");
 
 //CONTADOR NA TELA
  char text[20] = {"0"};
@@ -100,13 +114,14 @@ int main(void){
  bool pauseFlag;
 
 //MAPA CARREGADO
-    Tunel tunel[MAX_TUNEL];
-    int quant;
-    char mat[MAX_MATRIZ][MAX_MATRIZ];
-    Proporcao prop;
+ Tunel tunel[MAX_TUNEL] = {0};
+ int quant;
+ char mat[MAX_MATRIZ][MAX_MATRIZ];
+ Proporcao prop;
 
 //MAPA INPUT
  char mapaNome[MAX_INPUT_CHARS + 1] = "\0";      // NOTE: One extra space required for null terminator char '\0'
+ char mapaNum[MAX_INPUT_NUMS + 1] = "\0";
  int contaLetras = 0;
  bool mouseNoTexto = false;
  int framesCounter;
@@ -121,12 +136,6 @@ int main(void){
  [0] - Salvar
  [1] - Volta Menu
  */
-
- //--------------------------------------------------------------------------------------
- //INICIALIZACOES
- srand(time(NULL));
- InitWindow(LARGURA, ALTURA, "SnakeGame");//Inicializa janela, com certo tamanho e título
- SetTargetFPS(10);// Ajusta a execução do jogo para 60 frames por segundo
 
  //menuButtons
 
@@ -157,10 +166,10 @@ int main(void){
                 dy = 0;
                 pauseFlag = false;
                 carregado = false;
-            BeginDrawing();
-                ClearBackground(RAYWHITE);
-                for(int i = 0 ; i < 4 ; i++) buttonsConfig(menuButtons[i], &func);
-            EndDrawing();
+                BeginDrawing();
+                    ClearBackground(RAYWHITE);
+                    for(int i = 0 ; i < 4 ; i++) buttonsConfig(menuButtons[i], &func);
+                EndDrawing();
             break;
 
             case 1: //Jogo Rodando
@@ -173,13 +182,38 @@ int main(void){
                             strcpy(mapaNome, "Mapa1.txt");
                         }
                         leMapa(mapaNome, &pos, tunel, &quant, mat, &prop);
+                        printf("\n%d ", quant);
                         lado = LARGURA/prop.x;
+                        corpo.pos[0].x = pos.x;
+                        corpo.pos[0].y = pos.y;
                         iniComidas(com, lado, mat);// Inicializa as Comidas
                         carregado = true;
                     }
 
                 //Cuida da movimentacao da Cobra
-                movePersonagem(&pos, ALTURA, LARGURA, &dx, &dy, mat, lado);
+                int aux_x[MAX_COMIDA];
+                int aux_y[MAX_COMIDA];
+                for(int i= 0 ; i <quantCom; i++){
+                    aux_x[i] = corpo.pos[i].x;
+                    aux_y[i] = corpo.pos[i].y;
+                }
+                for(int i= 1 ; i <quantCom; i++){
+                    corpo.pos[i].x= aux_x[i-1];
+                    corpo.pos[i].y = aux_y[i-1];
+                }
+                corpo.pos[0].x = pos.x;
+                corpo.pos[0].y = pos.y;
+
+                if(movePersonagem(&pos, ALTURA, LARGURA, &dx, &dy, mat, lado)){
+                    //Testa colisão com o corpo
+                    for(int i = 0 ;  i < MAX_COMIDA ; i++){
+                        if(pos.x == corpo.pos[i].x && pos.y == corpo.pos[i].y ){
+                            printf("COLISAO");
+                        }
+
+                    }
+                }
+                entrouTunel(quant, tunel, &pos, mat, lado, &dx, &dy);
 
                 //----------------------------------------------------------------------------------
 
@@ -192,10 +226,16 @@ int main(void){
                 // Atualiza a representação visual a partir do estado do jogo
                 BeginDrawing();
 
-                      updateFrame(mat, prop);
+                      updateFrame(mat, prop, tunel, quant);
+
+                      for(int i= 0 ; i <quantCom; i++){
+                         principal(corpo.pos[i], lado);
+
+                      }
+
                       principal(pos, lado);//Desenha um Personagem, com posição, tamanho e cor
                       for(int i = 0 ;  i < MAX_COMIDA ; i++){
-                        comida(com[i].x, com[i].y, com[i].visivel, lado);//Desenha as comidas
+                        comida(com[i].x, com[i].y, com[i].visivel, comidaImg);//Desenha as comidas
                       }
                       DrawText(text, 600, 600, 20, BLUE);//Contador de comidas
                       if(quantCom == MAX_COMIDA){
@@ -215,10 +255,10 @@ int main(void){
 
                     while ( tecla > 0)
                     {
-                        if((tecla >=32) && (tecla <= 125) && (contaLetras < MAX_INPUT_CHARS))
+                        if((tecla >=32) && (tecla <= 125) && (contaLetras < MAX_INPUT_NUMS))
                         {
-                            mapaNome[contaLetras] = (char)tecla;
-                            mapaNome[contaLetras+1] = '\0';
+                            mapaNum[contaLetras] = (char)tecla;
+                            mapaNum[contaLetras+1] = '\0';
                             contaLetras++;
                         }
                         tecla = GetCharPressed();
@@ -227,16 +267,17 @@ int main(void){
                     {
                         contaLetras--;
                         if(contaLetras < 0) contaLetras = 0;
-                        mapaNome[contaLetras] = '\0';
+                        mapaNum[contaLetras] = '\0';
                     }
                 }
                 else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 
                 if (mouseNoTexto) framesCounter++;
                 else framesCounter = 0;
+                formaNome(mapaNome, mapaNum);
 
                 BeginDrawing();
-
+                    ClearBackground(RAYWHITE);
                     centraliza("PONHA O MOUSE SOBRE A CAIXA DE TEXTO!", 300, 20,GRAY);
                     centraliza("ESCOLHA O MAPA. EX:", ALTURA/2 - 75, 20, GRAY);
                     centraliza("Mapa4.txt", ALTURA/2 - 50, 20,GRAY);
@@ -257,6 +298,11 @@ int main(void){
                     }
                     buttonsConfig(selectMapa, &func);
                 EndDrawing();
+                if(mapaNome != NULL){
+                    if(!leMapa(mapaNome, &pos, tunel, &quant, mat, &prop)){
+                        centraliza("Mapa nao existe", ALTURA/2 + 100, 15, RED);
+                    }
+                }
             break;
 
             case 3: //HighScores
@@ -282,6 +328,7 @@ int main(void){
 
         }
     }
+    UnloadTexture(comidaImg);
     CloseWindow();
     return 0;
 }
@@ -289,14 +336,73 @@ int main(void){
 
 //----------------------------------------------------------------------------------
 //FUNCOES
+void formaNome(char mapaNome[], char mapaNum[]){
+    strcpy(mapaNome, "mapa");
+
+    // Concatena a string variável
+    strcat(mapaNome, mapaNum);
+
+    // Concatena o sufixo
+    strcat(mapaNome, ".txt");
+}
+
+void entrouTunel(int quant, Tunel tunel[], Posicao *pos, char mat[][MAX_MATRIZ], int lado, int *dx, int *dy){
+
+     for(int i = 0 ; i < quant ; i++)
+     {
+        if(pos->x == tunel[i].pos[0].x && pos->y == tunel[i].pos[0].y)
+            {
+            pos->x = tunel[i].pos[1].x;
+            pos->y = tunel[i].pos[1].y;
+            switch(tunel[i].dir[1]){
+                case 1:
+                    *dy = -1;
+                    *dx = 0;
+                break;
+                case 2:
+                    *dy = 1;
+                    *dx = 0;
+                break;
+                case 3:
+                    *dy = 0;
+                    *dx = -1;
+                break;
+                case 4:
+                    *dy = 0;
+                    *dx = 1;
+                break;
+            }
+        }else if(pos->x == tunel[i].pos[1].x && pos->y == tunel[i].pos[1].y){
+            pos->x = tunel[i].pos[0].x;
+            pos->y = tunel[i].pos[0].y;
+            switch(tunel[i].dir[0]){
+                case 1:
+                    *dy = -1;
+                    *dx = 0;
+                break;
+                case 2:
+                    *dy = 1;
+                    *dx = 0;
+                break;
+                case 3:
+                    *dy = 0;
+                    *dx = -1;
+                break;
+                case 4:
+                    *dy = 0;
+                    *dx = 1;
+                break;
+            }
+        }
+    }
+}
+
 void menuPause(bool *pauseFlag, Button pauseButtons[], int *func){
     if(IsKeyPressed(KEY_TAB)){
         if(*pauseFlag) *pauseFlag = false;
         else *pauseFlag = true;
     }
     if(*pauseFlag){
-            printf("%p \n", func);
-            printf("%d \n", *func);
             BeginDrawing();
             DrawRectangle(LARGURA/2- 150, ALTURA/2 - 150, 300, 250, DARKGRAY);
             for(int i  = 0 ; i < 2 ; i++) buttonsConfig(pauseButtons[i], func);
@@ -312,29 +418,31 @@ void centraliza(const char *texto, int posY, int fontSize, Color cor) {
     DrawText(texto, posX, posY, fontSize, cor);
 }
 
-int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX_MATRIZ], Proporcao *prop){
+int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *quant, char mat[][MAX_MATRIZ], Proporcao *prop){
     FILE *arq;
     int matX = 0, matY = 0;
     char lido = 'a', destino[100];
+    int quantTunel, idTunel;
 
     sprintf(destino, "Mapas/%s", nome);
 
     if(!(arq = fopen(destino,"r"))){ // abre para escrita modo texto
         printf("Erro na abertura\n");
-        return 1;
+        return 0;
     }
     else{
         //LEITURA TAMANHO MAPA
         for(int i = 0 ; i < 1; i++){
             fscanf(arq, "%d %d\n", &prop->x, &prop->y);
             printf("x = %d \ny = %d\n", prop->x, prop->y);
-            fscanf(arq, "%d\n", &*var);
+            fscanf(arq, "%d\n", &quantTunel);
         }
-        printf("%d\n", *var);
+        *quant = quantTunel;
+        printf("%d\n", *quant);
         //LEITURA POSICOES TUNEIS
-        for(int i = 0; i < *var; i++){
-            fscanf(arq, "%d %d\n", &tunel[i].dir1, &tunel[i].dir2);
-            printf("dir1 = %d \ndir2 = %d\n", tunel[i].dir1, tunel[i].dir2);
+        for(int i = 0; i < *quant; i++){
+            fscanf(arq, "%d %d\n", &tunel[i].dir[0], &tunel[i].dir[1]);
+            printf("dir1 = %d \ndir2 = %d\n", tunel[i].dir[0], tunel[i].dir[1]);
         }
         //LEITURA MAPA
         while(lido != EOF){
@@ -343,6 +451,16 @@ int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX_MA
                 if(lido == 'S'){
                     pos->x = matX;
                     pos->y = matY;
+                }else if(lido != '#' && lido != ' '){
+                    idTunel = lido - '0';
+                    if(!tunel[idTunel].iniFlag){
+                        tunel[idTunel].pos[0].x = matX;
+                        tunel[idTunel].pos[0].y = matY;
+                        tunel[idTunel].iniFlag = true;
+                    }else{
+                        tunel[idTunel].pos[1].x = matX;
+                        tunel[idTunel].pos[1].y = matY;
+                    }
                 }
                 mat[matX][matY] = lido;
                 printf("%c", mat[matX][matY]);
@@ -354,10 +472,9 @@ int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *var, char mat[][MAX_MA
                 matX = 0;
             }
         }
-
         fclose(arq);
     }
-    return 0;
+    return 1;
 }
 
 void buttonsConfig(Button button, int *func){
@@ -383,7 +500,7 @@ void iniButton(Button *button, Rectangle rect, Color cor, int acao, char *texto)
     strncpy(button->texto, texto, sizeof(button->texto) - 1);
 }
 
-void updateFrame(char mat[][MAX_MATRIZ], Proporcao prop){
+void updateFrame(char mat[][MAX_MATRIZ], Proporcao prop, Tunel tunel[], int quant){
     ClearBackground(LIGHTGRAY);// Limpa a tela e define cor de fundo
     int tamX = LARGURA/prop.x;
     int tamY = ALTURA/prop.y;
@@ -396,6 +513,11 @@ void updateFrame(char mat[][MAX_MATRIZ], Proporcao prop){
                 DrawRectangle((tamX * i) , (tamY * a), tamX - 1, tamY - 1, WHITE);
             }
         }
+    }
+
+    for(int i = 0 ; i < quant ; i++){
+        DrawRectangle((tamX * tunel[i].pos[0].x) , (tamY * tunel[i].pos[0].y), tamX - 1, tamY - 1, DARKGREEN);
+        DrawRectangle((tamX * tunel[i].pos[1].x) , (tamY * tunel[i].pos[1].y), tamX - 1, tamY - 1, DARKGREEN);
     }
 
 }
@@ -433,7 +555,7 @@ void iniComidas(struct strct_comida com[], int lado, char mat[][MAX_MATRIZ]){
     }
 }
 
-void movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado){
+int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado){
 
     int tempX, tempY; // Salvam temporariamente os valores das posicoes X, Y
 
@@ -463,15 +585,17 @@ void movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[
     if (!(tempX >= larg || tempX < 0 || tempY >= alt || tempY < 0) && mat[pos->x][pos->y] != '#') {
         pos->x = pos->x + *dx;
         pos->y = pos->y + *dy;
-    }
+        return 1;
+    } else return 0;
 }
 //Desenha a cobra !!SEM O VETOR DE TAMANHO
 int principal(Posicao pos, int lado){
     DrawRectangle((pos.x * lado), (pos.y * lado), lado, lado, GREEN);
 }
 //Desenha as comidas
-void comida(int x, int y, int visivel, int lado){
+void comida(int x, int y, int visivel, Texture2D comidaImg){
     if(visivel == 1){
-       DrawRectangle(x, y, lado, lado, RED);
+        DrawTexture(comidaImg, x, y , WHITE);
+       //DrawTexture(comidaImg, x, y, RED);
     }
 }
