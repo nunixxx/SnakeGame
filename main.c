@@ -60,7 +60,7 @@ int checkButton(Button button); //Retorna se o mouse esta em cima do botao
 
 void buttonsConfig(Button button, int *func); //Cuida da tela Menu e as acoes ao clicar em cada
 
-int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado); //gerencia a movimentacao da cobra
+int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado, Cobra corpo); //gerencia a movimentacao da cobra
 
 int principal(Posicao pos, int lado); // desenha a cobra
 
@@ -102,7 +102,7 @@ int main(){
  int comY; //posicao Y da comida visivel
  Comida com[MAX_COMIDA]; //todas as comidas do mapa
  int quantCom = 0; //quantidade ja comida
- Texture2D comidaImg = LoadTexture("images/maca40.png"); //imagem da comida
+ Texture2D comidaImg; //imagem da comida
 
 //CONTADOR NA TELA
  char text[20] = {"0"}; //Contador de comidas/pontuacao
@@ -123,6 +123,7 @@ int main(){
  int quant; // quantia de tuneis
  char mat[MAX_MATRIZ][MAX_MATRIZ]; //matriz do mapa
  Proporcao prop; // proporcoes do mapa
+ char fase[MAX_MATRIZ];
 
 //MAPA INPUT
  char mapaNome[MAX_INPUT_CHARS + 1] = "\0"; //Nome do mapa carregado
@@ -167,6 +168,7 @@ int main(){
         switch(func){// de acordo com a funcao selecionada abre uma tela
 
             case 0: //Menu
+                strcpy(fase, "Fase ");
                 quantCom = 0;
                 dx = 0;
                 dy = 0;
@@ -174,6 +176,8 @@ int main(){
                 carregado = false;
                 BeginDrawing();
                     ClearBackground(RAYWHITE);
+                    centraliza("Snake Game", 100, 40, RED);
+                    centraliza("...............................", 120, 40, GREEN);
                     for(int i = 0 ; i < 4 ; i++) buttonsConfig(menuButtons[i], &func);
                 EndDrawing();
             break;
@@ -195,32 +199,25 @@ int main(){
                         corpo.pos[0].x = pos.x;
                         corpo.pos[0].y = pos.y;
                         iniComidas(com, lado, mat); // Inicializa as Comidas
+                        strcat(fase, mapaNum);
                         carregado = true;
+                        if(lado == 40) comidaImg = LoadTexture("images/maca40.png");
+                        else comidaImg = LoadTexture("images/maca20.png");
                     }
 
                 //Cuida da movimentacao da Cobra
-                int aux_x[MAX_COMIDA];
-                int aux_y[MAX_COMIDA];
-                for(int i= 0 ; i <quantCom; i++){
-                    aux_x[i] = corpo.pos[i].x;
-                    aux_y[i] = corpo.pos[i].y;
-                }
-                for(int i= 1 ; i <quantCom; i++){
-                    corpo.pos[i].x= aux_x[i-1];
-                    corpo.pos[i].y = aux_y[i-1];
-                }
-                corpo.pos[0].x = pos.x;
-                corpo.pos[0].y = pos.y;
-
-                if(movePersonagem(&pos, ALTURA, LARGURA, &dx, &dy, mat, lado)){
-                    //Testa colisão com o corpo
-                    for(int i = 0 ;  i < MAX_COMIDA ; i++){
-                        if(pos.x == corpo.pos[i].x && pos.y == corpo.pos[i].y ){
-                            printf("COLISAO");
-                        }
-
+                    int aux_x[MAX_COMIDA];
+                    int aux_y[MAX_COMIDA];
+                    for(int i= 0 ; i <quantCom; i++){
+                        aux_x[i] = corpo.pos[i].x;
+                        aux_y[i] = corpo.pos[i].y;
                     }
-                }
+                    for(int i= 1 ; i <quantCom; i++){
+                        corpo.pos[i].x= aux_x[i-1];
+                        corpo.pos[i].y = aux_y[i-1];
+                    }
+                    corpo.pos[0].x = pos.x;
+                    corpo.pos[0].y = pos.y;
 
                 //Trata se a cobra entrou no tunel
                 entrouTunel(quant, tunel, &pos, mat, lado, &dx, &dy);
@@ -234,25 +231,43 @@ int main(){
 
                 //----------------------------------------------------------------------------------
                 // Atualiza a representação visual a partir do estado do jogo
-                BeginDrawing();
+                if(movePersonagem(&pos, ALTURA, LARGURA, &dx, &dy, mat, lado, corpo))
+                    {
+                        for(int i = 0 ;  i < MAX_COMIDA ; i++){
+                        if(pos.x == corpo.pos[i].x && pos.y == corpo.pos[i].y ){
+                            printf("COLISAO");
+                        }
 
-                      updateFrame(mat, prop, tunel, quant); //desenha o mapa
+                    }
+                    BeginDrawing();
 
-                      principal(pos, lado);//Desenha a cabeca da cobra
+                          updateFrame(mat, prop, tunel, quant); //desenha o mapa
 
-                      for(int i= 0 ; i <quantCom; i++){
-                         principal(corpo.pos[i], lado); //desenha corpo da cobra
+                          principal(pos, lado);//Desenha a cabeca da cobra
 
-                      }
+                          for(int i= 0 ; i <quantCom; i++){
+                             principal(corpo.pos[i], lado); //desenha corpo da cobra
 
-                      for(int i = 0 ;  i < MAX_COMIDA ; i++){
-                        comida(com[i].x, com[i].y, com[i].visivel, comidaImg);//Desenha as comidas visiveis
-                      }
-                      DrawText(text, 600, 600, 20, BLUE);//Contador de comidas/pontuacao
-                      if(quantCom == MAX_COMIDA){
-                            DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED); //Mensagem fim de jogo
-                      }
-                EndDrawing();
+                          }
+
+                          for(int i = 0 ;  i < MAX_COMIDA ; i++){
+                            comida(com[i].x, com[i].y, com[i].visivel, comidaImg);//Desenha as comidas visiveis
+                          }
+                          DrawText(text, 605, 0, lado, BLUE);//Contador de comidas/pontuacao
+                          DrawText(fase, 205, 0, lado, WHITE);
+                          if(quantCom == MAX_COMIDA){
+                                DrawText("Jogo Encerrado", LARGURA/2, ALTURA/2, 20, RED); //Mensagem fim de jogo
+                          }
+                    EndDrawing();
+                    } else {
+                        func = 0;
+                        BeginDrawing();
+                            ClearBackground(RAYWHITE);
+
+                            centraliza("FIM DE JOGO", LARGURA/2 - 20, 40, RED);
+                        EndDrawing();
+                        WaitTime(3);
+                    }
                 }
             break;
 
@@ -435,6 +450,10 @@ int leMapa(char nome[], Posicao *pos, Tunel tunel[], int *quant, char mat[][MAX_
     char lido = 'a', destino[100];
     int quantTunel, idTunel;
 
+    for(int i = 0 ;  i < *quant ; i++){
+        tunel[i].iniFlag = false;
+    }
+
     sprintf(destino, "Mapas/%s", nome);
 
     if(!(arq = fopen(destino,"r"))){ // abre para escrita modo texto
@@ -566,9 +585,10 @@ void iniComidas(struct strct_comida com[], int lado, char mat[][MAX_MATRIZ]){
     }
 }
 
-int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado){
+int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[][MAX_MATRIZ], int lado, Cobra corpo){
 
     int tempX, tempY; // Salvam temporariamente os valores das posicoes X, Y
+    bool tocou = true;
 
     //IF para checar a validade do comando de movimento
     if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && *dx != -1) {
@@ -592,8 +612,17 @@ int movePersonagem(Posicao *pos, int alt, int larg, int *dx, int *dy, char mat[]
     tempX = (pos->x * lado) + (lado * *dx);
     tempY = (pos->y * lado) + (lado * *dy);
 
+    for(int i = 0 ;  i < MAX_COMIDA ; i++){
+        if(pos->x == corpo.pos[i].x && pos->y == corpo.pos[i].y && (*dx != 0 && *dy != 0)){
+                printf("coli");
+            tocou = false;
+            i = MAX_COMIDA;
+        }
+
+    }
+
     //Checa se eh possivel se mover nessa posicao
-    if (!(tempX >= larg || tempX < 0 || tempY >= alt || tempY < 0) && mat[pos->x][pos->y] != '#') {
+    if (!(tempX >= larg || tempX < 0 || tempY >= alt || tempY < 0) && mat[pos->x][pos->y] != '#' && tocou) {
         pos->x = pos->x + *dx;
         pos->y = pos->y + *dy;
         return 1;
